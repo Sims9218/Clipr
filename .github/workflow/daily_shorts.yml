@@ -1,36 +1,38 @@
-name: Generate Shorts
+name: Automated Shorts Maker
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours
-  workflow_dispatch:      # Manual run button
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg imagemagick
-          # Fix ImageMagick security policy to allow TextClip
+          # Policy fix for ImageMagick (Crucial for MoviePy)
           sudo sed -i 's/policy domain="path" rights="none" pattern="@\*"/policy domain="path" rights="read|write" pattern="@*"/g' /etc/ImageMagick-6/policy.xml
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
 
-      - name: Install Python Libraries
+      - name: Install Python Dependencies
         run: pip install -r requirements.txt
 
-      - name: Run Script
+      - name: Execute Automation
         run: python main.py
 
-      - name: Save Video to GitHub
+      - name: Upload Finished Video
         uses: actions/upload-artifact@v4
         with:
-          name: youtube-short-${{ github.run_id }}
+          name: short-${{ github.run_id }}
           path: output_short.mp4
+          retention-days: 7
