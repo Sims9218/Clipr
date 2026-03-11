@@ -5,26 +5,25 @@ import yt_dlp
 import whisper
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 
-NICHES = [
-    "#shorts #techfacts #coding",
-    "#shorts #stockmarket #investing",
-    "#shorts #cybersecurity #networking",
-    "#shorts #motivation #productivity",
-    "#shorts #ai #machinelearning"
-]
-
+NICHES = ["#shorts #techfacts", "#shorts #stockmarket", "#shorts #coding"]
 SELECTED_NICHE = random.choice(NICHES)
 SEARCH_QUERY = f"ytsearch1:{SELECTED_NICHE}"
-OUTPUT_NAME = "output_short.mp4"
+COOKIE_FILE = "youtube_cookies.txt"
 
 def acquire_clip():
-    print(f"Searching for: {SELECTED_NICHE}")
+    cookies = os.getenv("YT_COOKIES")
+    if cookies:
+        with open(COOKIE_FILE, "w") as f:
+            f.write(cookies)
+    
     ydl_opts = {
         'format': 'best[ext=mp4]',
         'outtmpl': 'input_video.mp4',
         'noplaylist': True,
         'quiet': True,
+        'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
     }
+    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([SEARCH_QUERY])
     return "input_video.mp4"
