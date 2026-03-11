@@ -30,6 +30,12 @@ jobs:
       - name: Execute Automation
         run: python main.py
 
+      - name: Execute Automation
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
       - name: Upload Finished Video
         uses: actions/upload-artifact@v4
         with:
