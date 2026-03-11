@@ -1,0 +1,44 @@
+name: Automated Shorts Maker
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg imagemagick
+          # Policy fix for ImageMagick (Crucial for MoviePy)
+          sudo sed -i 's/policy domain="path" rights="none" pattern="@\*"/policy domain="path" rights="read|write" pattern="@*"/g' /etc/ImageMagick-6/policy.xml
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Execute Automation
+        run: python main.py
+
+      - name: Execute Automation
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Upload Finished Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-${{ github.run_id }}
+          path: output_short.mp4
+          retention-days: 7
