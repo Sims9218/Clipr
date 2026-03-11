@@ -17,11 +17,31 @@ def acquire_clip():
             f.write(cookies)
     
     ydl_opts = {
-        'format': 'best[ext=mp4]',
+        'format': 'bestvideo+bestaudio/best', 
+        'merge_output_format': 'mp4',
         'outtmpl': 'input_video.mp4',
         'noplaylist': True,
         'quiet': True,
         'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            ydl.download([SEARCH_QUERY])
+        except Exception as e:
+            print(f"Download failed: {e}")
+            return None
+            
+    return "input_video.mp4"
+    
+    ydl_opts = {
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
+        'outtmpl': 'input_video.mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
