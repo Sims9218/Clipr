@@ -13,48 +13,40 @@ COOKIE_FILE = "youtube_cookies.txt"
 def acquire_clip():
     cookies = os.getenv("YT_COOKIES")
     if cookies:
-        with open(COOKIE_FILE, "w") as f:
+        with open(COOKIE_FILE, "w", encoding='utf-8') as f:
             f.write(cookies)
-    
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best', 
-        'merge_output_format': 'mp4',
-        'outtmpl': 'input_video.mp4',
-        'noplaylist': True,
-        'quiet': True,
-        'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            ydl.download([SEARCH_QUERY])
-        except Exception as e:
-            print(f"Download failed: {e}")
-            return None
-            
-    return "input_video.mp4"
-    
+        print("Cookies loaded from environment.")
+
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
         'merge_output_format': 'mp4',
         'outtmpl': 'input_video.mp4',
         'noplaylist': True,
-        'quiet': True,
+        'quiet': False,
         'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
         'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([SEARCH_QUERY])
-    return "input_video.mp4"
+        try:
+            ydl.download([SEARCH_QUERY])
+            if os.path.exists("input_video.mp4"):
+                return "input_video.mp4"
+        except Exception as e:
+            print(f"Download failed: {e}")
+    
+    return None
 
 def process_video(input_path):
+    if input_path is None or not os.path.exists(input_path):
+        print("Error: No video file found to process.")
+        return False
+
     print("Transcribing and editing...")
     model = whisper.load_model("tiny")
     result = model.transcribe(input_path)
     
     video = VideoFileClip(input_path).subclip(0, 59)
-    
     w, h = video.size
     target_ratio = 9/16
     target_w = h * target_ratio
@@ -64,7 +56,6 @@ def process_video(input_path):
     
     for segment in result['segments']:
         if segment['start'] > 59: break
-        
         txt = TextClip(
             segment['text'].upper().strip(),
             fontsize=60,
@@ -75,11 +66,11 @@ def process_video(input_path):
             method='caption',
             size=(video_cropped.w * 0.9, None)
         ).set_start(segment['start']).set_duration(segment['end'] - segment['start']).set_position(('center', 'center'))
-        
         clips.append(txt)
 
     final = CompositeVideoClip(clips)
-    final.write_videofile(OUTPUT_NAME, fps=24, codec="libx264", audio_codec="aac")
+    final.write_videofile("output_short.mp4", fps=24, codec="libx264", audio_codec="aac")
+    return True
 
 def send_to_telegram(file_path):
     token = os.getenv("TELEGRAM_TOKEN")
@@ -94,5 +85,9 @@ def send_to_telegram(file_path):
 
 if __name__ == "__main__":
     file = acquire_clip()
-    process_video(file)
-    send_to_telegram(OUTPUT_NAME)
+    if file:
+        success = process_video(file)
+        if success:
+            send_to_telegram("output_short.mp4")
+    else:
+        print("Workflow stopped because the video could not be downloaded.")
