@@ -24,7 +24,10 @@ def acquire_clip():
         'noplaylist': True,
         'quiet': False,
         'cookiefile': COOKIE_FILE if os.path.exists(COOKIE_FILE) else None,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+        # Force the 'ios' client. It is currently the most successful at bypassing bot checks.
+        'extractor_args': {'youtube': {'player_client': ['ios'], 'skip': ['webpage']}},
+        # Set a realistic user agent
+        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
