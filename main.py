@@ -1,14 +1,24 @@
 import os
+import random
+import requests
 import yt_dlp
 import whisper
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
-import requests
 
-SEARCH_QUERY = "ytsearch1:#shorts #viral #podcast"
+NICHES = [
+    "#shorts #techfacts #coding",
+    "#shorts #stockmarket #investing",
+    "#shorts #cybersecurity #networking",
+    "#shorts #motivation #productivity",
+    "#shorts #ai #machinelearning"
+]
+
+SELECTED_NICHE = random.choice(NICHES)
+SEARCH_QUERY = f"ytsearch1:{SELECTED_NICHE}"
 OUTPUT_NAME = "output_short.mp4"
 
 def acquire_clip():
-    print("Searching for trending clip...")
+    print(f"Searching for: {SELECTED_NICHE}")
     ydl_opts = {
         'format': 'best[ext=mp4]',
         'outtmpl': 'input_video.mp4',
@@ -38,41 +48,32 @@ def process_video(input_path):
         
         txt = TextClip(
             segment['text'].upper().strip(),
-            fontsize=50,
+            fontsize=60,
             color='yellow',
             font='Arial-Bold',
             stroke_color='black',
-            stroke_width=1.5,
+            stroke_width=2,
             method='caption',
-            size=(video_cropped.w * 0.8, None)
-        ).set_start(segment['start']).set_duration(segment['end'] - segment['start']).set_position(('center', 0.7), relative=True)
+            size=(video_cropped.w * 0.9, None)
+        ).set_start(segment['start']).set_duration(segment['end'] - segment['start']).set_position(('center', 'center'))
         
         clips.append(txt)
 
     final = CompositeVideoClip(clips)
     final.write_videofile(OUTPUT_NAME, fps=24, codec="libx264", audio_codec="aac")
-    print(f"Finished! Saved as {OUTPUT_NAME}")
 
 def send_to_telegram(file_path):
     token = os.getenv("TELEGRAM_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    
-    if not token or not chat_id:
-        print("Telegram credentials missing. Skipping upload.")
-        return
+    if not token or not chat_id: return
 
     url = f"https://api.telegram.org/bot{token}/sendVideo"
     with open(file_path, 'rb') as video:
-        payload = {'chat_id': chat_id, 'caption': '🎬 New Short Ready!'}
+        payload = {'chat_id': chat_id, 'caption': f"🎬 Topic: {SELECTED_NICHE}"}
         files = {'video': video}
-        response = requests.post(url, data=payload, files=files)
-        
-    if response.status_code == 200:
-        print("Successfully sent to Telegram!")
-    else:
-        print(f"Failed to send: {response.text}")
+        requests.post(url, data=payload, files=files)
 
 if __name__ == "__main__":
     file = acquire_clip()
     process_video(file)
-    send_to_telegram("output_short.mp4")
+    send_to_telegram(OUTPUT_NAME)
