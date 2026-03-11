@@ -2,6 +2,7 @@ import os
 import yt_dlp
 import whisper
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+import requests
 
 SEARCH_QUERY = "ytsearch1:#shorts #viral #podcast"
 OUTPUT_NAME = "output_short.mp4"
@@ -52,6 +53,26 @@ def process_video(input_path):
     final.write_videofile(OUTPUT_NAME, fps=24, codec="libx264", audio_codec="aac")
     print(f"Finished! Saved as {OUTPUT_NAME}")
 
+def send_to_telegram(file_path):
+    token = os.getenv("TELEGRAM_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        print("Telegram credentials missing. Skipping upload.")
+        return
+
+    url = f"https://api.telegram.org/bot{token}/sendVideo"
+    with open(file_path, 'rb') as video:
+        payload = {'chat_id': chat_id, 'caption': '🎬 New Short Ready!'}
+        files = {'video': video}
+        response = requests.post(url, data=payload, files=files)
+        
+    if response.status_code == 200:
+        print("Successfully sent to Telegram!")
+    else:
+        print(f"Failed to send: {response.text}")
+
 if __name__ == "__main__":
     file = acquire_clip()
     process_video(file)
+    send_to_telegram("output_short.mp4")
