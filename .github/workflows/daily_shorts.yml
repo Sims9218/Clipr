@@ -1,7 +1,7 @@
 name: Automated Shorts Maker
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs 4 times a day (12am, 6am, 12pm, 6pm UTC)
+    - cron: '0 */6 * * *' # Runs every 6 hours
   workflow_dispatch:
 
 jobs:
@@ -14,8 +14,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
+          # ffmpeg is CRITICAL for merging bestvideo+bestaudio formats
           sudo apt-get install -y ffmpeg imagemagick
-          # Fix ImageMagick security policy to allow MoviePy to render text
+          # Fix ImageMagick security policy to allow MoviePy to render subtitles
           sudo sed -i 's/policy domain="path" rights="none" pattern="@\*"/policy domain="path" rights="read|write" pattern="@*"/g' /etc/ImageMagick-6/policy.xml
 
       - name: Set up Python
@@ -25,7 +26,6 @@ jobs:
           cache: 'pip'
 
       - name: Setup Deno (JS Runtime)
-        # This fixes the "No supported JavaScript runtime could be found" warning
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
